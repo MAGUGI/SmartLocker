@@ -35,13 +35,58 @@ Fornecer uma plataforma web que permita:
 - O check-out libera o armário automaticamente para o próximo aluno.
 - Armários podem ser classificados por **tamanho** (P, M, G) e agrupados por **bloco** (ex.: Bloco A, Bloco B, Vestiário Feminino/Masculino).
 
+---
+
+## Especificação de Requisitos
+
+Este documento consolida a especificação técnica dos requisitos funcionais e não funcionais para o ecossistema SmartLocker. O escopo abrange desde a interface de administração baseada em componentes web até a arquitetura futura de IoT, integração de pagamentos e diretrizes de qualidade de software baseadas em normas reconhecidas da indústria (como a ISO/IEC 25010).
+
+### 1. Requisitos Funcionais - Interface Base
+Requisitos mapeados a partir da estrutura de interface web inicial para controle e gestão dos armários.
+
+| ID | Funcionalidade | Descrição Detalhada |
+| :--- | :--- | :--- |
+| **RF01** | Gestão de Perfil | O sistema deve possuir um menu de navegação que permita ao usuário acessar configurações de conta, com exibição de avatar. |
+| **RF02** | Monitoramento de Armários | O sistema deve listar os armários em formato de tabela, apresentando ID, status e histórico de uso. |
+| **RF03** | Identificação de Status | Utilização de indicadores visuais (*badges*) para destacar a disponibilidade (ex.: Disponível, Ocupado, Manutenção). |
+| **RF04** | Operações de Acesso | Ações rápidas para abrir, bloquear ou liberar um armário específico diretamente pela interface. |
+| **RF05** | Interação via Modais | Caixas de diálogo para confirmar ações críticas antes da execução (ex.: confirmação de abertura). |
+| **RF06** | Cadastro e Edição | Entrada e atualização de dados de usuários e lockers através de formulários padronizados. |
+| **RF07** | Sistema de Notificações | Exibição de alertas temporários (*toasts*) sobre o resultado de operações sistêmicas. |
+
+### 2. Requisitos Funcionais - Evolução IoT e Negócio
+Requisitos focados no escalonamento do produto, integrando serviços externos e comunicação em tempo real com hardware.
+
+| ID | Funcionalidade | Descrição Detalhada |
+| :--- | :--- | :--- |
+| **RF08** | Telemetria em Tempo Real | Processamento de dados de sensores (temperatura, bateria, status de porta) refletidos no painel. |
+| **RF10** | Motor de Reservas | Agendamento de armários calculando tarifas baseadas no tempo e dimensões. |
+| **RF11** | Integração de Pagamentos | Conexão com gateways externos para processamento de cartões e PIX, alterando o status da reserva. |
+| **RF12** | Multi-tenancy | Suporte a múltiplos clientes ou filiais no mesmo painel, com isolamento lógico de dados. |
+| **RF13** | Trilha de Auditoria | Registro contínuo e imutável de ações críticas, incluindo data, hora, usuário e endereço IP de origem. |
+
+### 3. Requisitos Não Funcionais - Arquitetura e Qualidade
+Diretrizes técnicas para assegurar manutenibilidade, segurança e alinhamento com padrões de qualidade de software, como os descritos pela norma ISO/IEC 25010.
+
+| ID | Categoria | Descrição Detalhada |
+| :--- | :--- | :--- |
+| **RNF01** | Stack Frontend | Uso do framework Next.js (App Router) e React. |
+| **RNF02** | Tipagem Estática | Implementação 100% em TypeScript para garantia e confiabilidade de tipos. |
+| **RNF03** | Estilização UI | Uso de Tailwind CSS acoplado a um design system de componentes modulares acessíveis (ARIA). |
+| **RNF04** | Comunicação IoT | Implementação de protocolo leve (MQTT ou WebSockets) para comunicação bidirecional com os armários físicos. |
+| **RNF05** | Tolerância a Falhas | Operação offline de contingência, com sincronização assíncrona de dados após o restabelecimento da rede. |
+| **RNF06** | Segurança e Privacidade | Dados criptografados, comunicação com protocolo TLS 1.2+ e conformidade com a LGPD. |
+| **RNF07** | Escalabilidade de Dados | Arquitetura de banco de dados capaz de suportar alta carga de concorrência gerada pela telemetria contínua. |
+
+---
+
 ## Arquitetura
 
 O sistema foi planejado em camadas evolutivas (N1 → N2 → N3), começando por um MVP funcional e evoluindo para automações e regras de cobrança.
 
 ```
 ┌────────────────────────────────────────────────┐
-│                 Cliente (Web)                  │
+│                Cliente (Web)                   │
 │      Next.js (App Router) + React + UI Kit     │
 └────────────────────┬───────────────────────────┘
                      │ HTTPS / REST (API Routes)
@@ -61,16 +106,16 @@ O sistema foi planejado em camadas evolutivas (N1 → N2 → N3), começando por
 
 ## Stack Tecnológica
 
-| Camada         | Tecnologia                                        |
-|----------------|---------------------------------------------------|
-| Frontend       | Next.js 14 (App Router) + React 18                |
-| Estilização    | Tailwind CSS + shadcn/ui, com suporte a dark mode |
-| Backend/API    | Next.js API Routes (Route Handlers)               |
-| ORM            | Prisma                                            |
-| Banco de dados | PostgreSQL                                        |
-| Autenticação   | NextAuth.js (Credentials Provider, sessão JWT)    |
-| Validação      | Zod                                               |
-| Deploy         | Vercel                                            |
+| Camada | Tecnologia |
+| :--- | :--- |
+| Frontend | Next.js 14 (App Router) + React 18 |
+| Estilização | Tailwind CSS + shadcn/ui, com suporte a dark mode |
+| Backend/API | Next.js API Routes (Route Handlers) |
+| ORM | Prisma |
+| Banco de dados | PostgreSQL |
+| Autenticação | NextAuth.js (Credentials Provider, sessão JWT) |
+| Validação | Zod |
+| Deploy | Vercel |
 
 ## Modelo de Dados
 
