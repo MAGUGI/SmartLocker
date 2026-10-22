@@ -2,15 +2,16 @@ import { Role } from "@prisma/client";
 import { getToken } from "next-auth/jwt";
 import { NextRequest, NextResponse } from "next/server";
 
-const REGRAS_DE_ACESSO: { prefixo: string; papel: Role }[] = [
+const REGRAS_DE_ACESSO: { prefixo: string; papel?: Role }[] = [
   { prefixo: "/dashboard", papel: "ADMIN" },
   { prefixo: "/armarios", papel: "ALUNO" },
   { prefixo: "/meu-armario", papel: "ALUNO" },
+  { prefixo: "/perfil" },
 ];
 
 function resolverRedirecionamento(pathname: string, papel: Role): string | null {
   const regra = REGRAS_DE_ACESSO.find((r) => pathname.startsWith(r.prefixo));
-  if (!regra || papel === regra.papel) return null;
+  if (!regra || !regra.papel || papel === regra.papel) return null;
   return regra.papel === "ADMIN" ? "/armarios" : "/dashboard";
 }
 
@@ -45,5 +46,10 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/armarios/:path*", "/meu-armario/:path*"],
+  matcher: [
+    "/dashboard/:path*",
+    "/armarios/:path*",
+    "/meu-armario/:path*",
+    "/perfil/:path*",
+  ],
 };
