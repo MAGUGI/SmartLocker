@@ -5,10 +5,15 @@ import { mapearErroPrisma } from "@/lib/mapearErroPrisma";
 import { prisma } from "@/lib/prisma";
 import { validarOuResponder400 } from "@/lib/validarOuResponder400";
 import { updateArmarioSchema } from "@/schemas/armario";
+import { registrarAuditoria } from "@/server/auditoriaService";
 
 export const PATCH = comRotaAutenticada(
   "ADMIN",
-  async (_contexto, request: Request, { params }: { params: { id: string } }) => {
+  async (
+    { user, ip, userAgent },
+    request: Request,
+    { params }: { params: { id: string } }
+  ) => {
     const body = await request.json();
     const parsed = updateArmarioSchema.safeParse(body);
     if (!parsed.success) return validarOuResponder400(parsed.error);
@@ -17,7 +22,11 @@ export const PATCH = comRotaAutenticada(
       where: { id: params.id },
     });
     if (!armarioAtual) {
-      throw new ErroRegraDeNegocio("ARMARIO_NAO_ENCONTRADO", "Armário não encontrado", 404);
+      throw new ErroRegraDeNegocio(
+        "ARMARIO_NAO_ENCONTRADO",
+        "Armário não encontrado",
+        404
+      );
     }
 
     const tentandoAlterarDadosOuManutencao =
@@ -29,7 +38,7 @@ export const PATCH = comRotaAutenticada(
     if (armarioAtual.status === "OCUPADO" && tentandoAlterarDadosOuManutencao) {
       throw new ErroRegraDeNegocio(
         "ARMARIO_EM_USO",
-        "Este armário está em uso e não pode ser editado ou enviado para manutenção agora",
+        "Este armário está em uso. Utilize Abertura de Emergência ou Liberação Forçada.",
         409
       );
     }
@@ -39,10 +48,24 @@ export const PATCH = comRotaAutenticada(
         where: { id: params.id },
         data: parsed.data,
       });
+
+      await registrarAuditoria({
+        operadorId: user.id,
+        acao: "ATUALIZAR_ARMARIO",
+        entidade: "Armario",
+        entidadeId: armario.id,
+        detalhes: `Status: ${armario.status} | Bloco: ${armario.bloco}`,
+        ip,
+        userAgent,
+      });
+
       return NextResponse.json(armario);
     } catch (error) {
       const respostaPrisma = mapearErroPrisma(error, {
-        P2002: { status: 409, mensagem: "Já existe um armário com esse número neste bloco" },
+        P2002: {
+          status: 409,
+          mensagem: "Já existe um armário com esse número neste bloco",
+        },
       });
       if (respostaPrisma) return respostaPrisma;
       throw error;
@@ -52,12 +75,20 @@ export const PATCH = comRotaAutenticada(
 
 export const DELETE = comRotaAutenticada(
   "ADMIN",
-  async (_contexto, _request: Request, { params }: { params: { id: string } }) => {
+  async (
+    { user, ip, userAgent },
+    _request: Request,
+    { params }: { params: { id: string } }
+  ) => {
     const armarioAtual = await prisma.armario.findUnique({
       where: { id: params.id },
     });
     if (!armarioAtual) {
-      throw new ErroRegraDeNegocio("ARMARIO_NAO_ENCONTRADO", "Armário não encontrado", 404);
+      throw new ErroRegraDeNegocio(
+        "ARMARIO_NAO_ENCONTRADO",
+        "Armário não encontrado",
+        404
+      );
     }
     if (armarioAtual.status === "OCUPADO") {
       throw new ErroRegraDeNegocio(
@@ -69,6 +100,17 @@ export const DELETE = comRotaAutenticada(
 
     try {
       await prisma.armario.delete({ where: { id: params.id } });
+
+      await registrarAuditoria({
+        operadorId: user.id,
+        acao: "EXCLUIR_ARMARIO",
+        entidade: "Armario",
+        entidadeId: params.id,
+        detalhes: `Armário #${armarioAtual.numero} (${armarioAtual.bloco}) excluído`,
+        ip,
+        userAgent,
+      });
+
       return new NextResponse(null, { status: 204 });
     } catch (error) {
       const respostaPrisma = mapearErroPrisma(error, {
