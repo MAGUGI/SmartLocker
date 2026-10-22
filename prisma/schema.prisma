@@ -25,6 +25,18 @@ enum StatusArmario {
   MANUTENCAO
 }
 
+model Unidade {
+  id        String   @id @default(cuid())
+  nome      String
+  codigo    String   @unique
+  endereco  String?
+  ativa     Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  usuarios User[]
+  armarios Armario[]
+}
+
 model User {
   id           String   @id @default(cuid())
   nome         String
@@ -33,22 +45,44 @@ model User {
   role         Role     @default(ALUNO)
   /// Obrigatória para ALUNO; nula para ADMIN.
   matricula    String?  @unique
+  bloqueado    Boolean  @default(false)
+  anonimizado  Boolean  @default(false)
+  unidadeId    String?
   createdAt    DateTime @default(now())
 
-  usos UsoArmario[]
+  unidade       Unidade?                @relation(fields: [unidadeId], references: [id])
+  usos          UsoArmario[]
+  relatos       RelatoProblemaArmario[]
+  logsAuditoria AuditoriaLog[]
+
+  @@index([unidadeId])
 }
 
 model Armario {
-  id        String        @id @default(cuid())
-  numero    Int
-  bloco     String
-  tamanho   Tamanho
-  status    StatusArmario @default(LIVRE)
-  createdAt DateTime      @default(now())
+  id                    String        @id @default(cuid())
+  numero                Int
+  bloco                 String
+  tamanho               Tamanho
+  status                StatusArmario @default(LIVRE)
+  modalidadeManutencao  String?
+  totalCiclosAbertura   Int           @default(0)
+  usosDesdeHigienizacao Int           @default(0)
+  ultimaHigienizacaoEm  DateTime      @default(now())
+  nivelBateria          Int           @default(100)
+  temperatura           Float         @default(24.0)
+  portaAberta           Boolean       @default(false)
+  portaAbertaDesde      DateTime?
+  unidadeId             String?
+  createdAt             DateTime      @default(now())
 
-  usos UsoArmario[]
+  unidade          Unidade?                @relation(fields: [unidadeId], references: [id])
+  usos             UsoArmario[]
+  relatos          RelatoProblemaArmario[]
+  ordensManutencao OrdemManutencao[]
+  telemetrias      ArmarioTelemetria[]
 
   @@unique([numero, bloco])
+  @@index([unidadeId])
 }
 
 model TentativaAcesso {
@@ -60,15 +94,104 @@ model TentativaAcesso {
 }
 
 model UsoArmario {
-  id        String    @id @default(cuid())
-  userId    String
-  armarioId String
-  checkIn   DateTime  @default(now())
-  checkOut  DateTime?
+  id                     String    @id @default(cuid())
+  userId                 String
+  armarioId              String
+  checkIn                DateTime  @default(now())
+  checkOut               DateTime?
+  pinAcesso              String?
+  pinExpiraEm            DateTime?
+  abandonado             Boolean   @default(false)
+  arquivado              Boolean   @default(false)
+  justificativaLiberacao String?
+  valorCobrado           Float     @default(0)
+  statusPagamento        String    @default("ISENTO")
+  pixTxId                String?
+  pixCopiaECola          String?
 
   user    User    @relation(fields: [userId], references: [id])
   armario Armario @relation(fields: [armarioId], references: [id])
 
   @@index([userId])
   @@index([armarioId])
+  @@index([checkOut, abandonado])
+}
+
+model RelatoProblemaArmario {
+  id             String   @id @default(cuid())
+  armarioId      String
+  userId         String
+  categoria      String
+  descricao      String
+  prioridadeAlta Boolean  @default(true)
+  resolvido      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  armario Armario @relation(fields: [armarioId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@index([armarioId, resolvido])
+  @@index([userId])
+}
+
+model OrdemManutencao {
+  id                   String    @id @default(cuid())
+  armarioId            String
+  tipo                 String
+  status               String    @default("ABERTA")
+  descricao            String
+  pecasTrocadas        String?
+  custo                Float     @default(0)
+  testadoAntesReativar Boolean   @default(false)
+  createdAt            DateTime  @default(now())
+  concluidaEm          DateTime?
+
+  armario Armario @relation(fields: [armarioId], references: [id])
+
+  @@index([armarioId, status])
+}
+
+model ArmarioTelemetria {
+  id                       String   @id @default(cuid())
+  armarioId                String
+  nivelBateria             Int
+  temperatura              Float
+  portaAberta              Boolean  @default(false)
+  tempoPortaAbertaSegundos Int      @default(0)
+  criadoEm                 DateTime @default(now())
+
+  armario Armario @relation(fields: [armarioId], references: [id])
+
+  @@index([armarioId, criadoEm])
+}
+
+model AuditoriaLog {
+  id         String   @id @default(cuid())
+  operadorId String?
+  acao       String
+  entidade   String
+  entidadeId String?
+  detalhes   String?
+  ip         String   @default("desconhecido")
+  userAgent  String   @default("desconhecido")
+  criadoEm   DateTime @default(now())
+
+  operador User? @relation(fields: [operadorId], references: [id])
+
+  @@index([operadorId])
+  @@index([entidade, criadoEm])
+}
+
+model InspecaoFisica {
+  id             String   @id @default(cuid())
+  bloco          String
+  dataProgramada DateTime
+  alinhamentoOk  Boolean  @default(true)
+  vedacaoOk      Boolean  @default(true)
+  sensoresOk     Boolean  @default(true)
+  observacoes    String?
+  concluida      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  @@index([bloco, dataProgramada])
 }
