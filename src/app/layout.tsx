@@ -17,6 +17,7 @@ const jetBrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "SmartLocker",
   description: "Gestão inteligente de armários rotativos e diários para academias.",
+  manifest: "/manifest.json",
   icons: {
     icon: "/smartlocker_logo.png",
   },
