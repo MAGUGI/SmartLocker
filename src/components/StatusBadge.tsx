@@ -1,11 +1,22 @@
-import { CheckCircle2, User, Wrench } from "lucide-react";
+import {
+  AlertOctagon,
+  CheckCircle2,
+  Sparkles,
+  User,
+  Wrench,
+} from "lucide-react";
 
-import { mesclarClasses } from "@/utils/mesclarClasses";
 import type { StatusArmario } from "@/types/armario";
+import { mesclarClasses } from "@/utils/mesclarClasses";
 
 const STATUS_CONFIG: Record<
   StatusArmario,
-  { label: string; icon: typeof CheckCircle2; className: string; pulse?: boolean }
+  {
+    label: string;
+    icon: typeof CheckCircle2;
+    className: string;
+    pulse?: boolean;
+  }
 > = {
   LIVRE: {
     label: "Livre",
@@ -25,19 +36,43 @@ const STATUS_CONFIG: Record<
   },
 };
 
-export function StatusBadge({ status }: { status: StatusArmario }) {
-  const { label, icon: Icon, className, pulse } = STATUS_CONFIG[status];
+export function StatusBadge({
+  status,
+  modalidadeManutencao,
+}: {
+  status: StatusArmario;
+  modalidadeManutencao?: string | null;
+}) {
+  const base = STATUS_CONFIG[status];
+  let label = base.label;
+  let Icon = base.icon;
+
+  if (status === "MANUTENCAO") {
+    if (modalidadeManutencao === "MANUTENCAO_EMERGENCIAL") {
+      label = "Manut. Emergencial";
+      Icon = AlertOctagon;
+    } else if (modalidadeManutencao === "HIGIENIZACAO") {
+      label = "Higienização";
+      Icon = Sparkles;
+    } else if (modalidadeManutencao === "PREDITIVA_BATERIA") {
+      label = "Bateria Crítica";
+      Icon = AlertOctagon;
+    }
+  }
 
   return (
     <span
       className={mesclarClasses(
         "inline-flex items-center gap-1.5 rounded-full py-1 pl-1.5 pr-2.5 text-xs font-medium",
-        className
+        base.className
       )}
     >
       <span
         aria-hidden="true"
-        className={mesclarClasses("led-dot size-1.5", pulse && "led-dot-pulse")}
+        className={mesclarClasses(
+          "led-dot size-1.5",
+          base.pulse && "led-dot-pulse"
+        )}
       />
       <Icon className="size-3.5" aria-hidden="true" />
       {label}
