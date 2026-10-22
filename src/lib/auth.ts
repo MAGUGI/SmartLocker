@@ -7,8 +7,15 @@ import { loginSchema } from "@/schemas/auth";
 import { verificarLimiteDeTaxa } from "@/server/limiteDeTaxaService";
 import { extrairPrimeiroIp } from "@/utils/extrairPrimeiroIp";
 
-function validarSegredoDeSessao() {
-  if (!process.env.NEXTAUTH_SECRET || process.env.NEXTAUTH_SECRET.length < 32) {
+const TAMANHO_MINIMO_SEGREDO = 32;
+const LIMITE_TENTATIVAS_LOGIN = 5;
+const JANELA_LOGIN_SEGUNDOS = 60;
+
+export function validarSegredoDeSessao() {
+  if (
+    !process.env.NEXTAUTH_SECRET ||
+    process.env.NEXTAUTH_SECRET.length < TAMANHO_MINIMO_SEGREDO
+  ) {
     throw new Error(
       "NEXTAUTH_SECRET precisa estar definido com pelo menos 32 caracteres"
     );
@@ -35,7 +42,11 @@ export const authOptions: NextAuthOptions = {
         validarSegredoDeSessao();
 
         const ip = extrairPrimeiroIp(req?.headers?.["x-forwarded-for"]);
-        const podeTentar = await verificarLimiteDeTaxa(`login:${ip}`, 5, 60);
+        const podeTentar = await verificarLimiteDeTaxa(
+          `login:${ip}`,
+          LIMITE_TENTATIVAS_LOGIN,
+          JANELA_LOGIN_SEGUNDOS
+        );
         if (!podeTentar) return null;
 
         const parsed = loginSchema.safeParse(credentials);
@@ -44,7 +55,10 @@ export const authOptions: NextAuthOptions = {
         const user = await prisma.user.findUnique({
           where: { email: parsed.data.email },
         });
-        if (!user) return null;
+
+        if (!user || user.bloqueado || user.anonimizado) {
+          return null;
+        }
 
         const senhaValida = await bcrypt.compare(
           parsed.data.senha,
@@ -58,6 +72,7 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           role: user.role,
           matricula: user.matricula,
+          unidadeId: user.unidadeId,
         };
       },
     }),
@@ -68,6 +83,7 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.role = user.role;
         token.matricula = user.matricula;
+        token.unidadeId = user.unidadeId;
       }
       return token;
     },
@@ -75,6 +91,7 @@ export const authOptions: NextAuthOptions = {
       session.user.id = token.id;
       session.user.role = token.role;
       session.user.matricula = token.matricula;
+      session.user.unidadeId = token.unidadeId;
       return session;
     },
   },
