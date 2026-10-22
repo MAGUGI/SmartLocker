@@ -1,10 +1,13 @@
-name: CI
+name: CI & Preventive Maintenance
 
 on:
   push:
-    branches: [main, development]
+    branches: [main, backend, frontend, development]
   pull_request:
-    branches: [main, development]
+    branches: [main, backend, frontend, development]
+  schedule:
+    # MNT-13: Verificacao preventiva semanal (segundas-feiras as 06:00 UTC)
+    - cron: "0 6 * * 1"
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -30,6 +33,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Validate backup script syntax (MNT-12)
+        run: bash -n scripts/backup-db.sh
+
       - name: Lint
         run: npm run lint
 
@@ -41,3 +47,8 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/smartlocker"
+          DIRECT_URL: "postgresql://postgres:postgres@localhost:5432/smartlocker"
+          NEXTAUTH_SECRET: "ci-build-secret-placeholder-32-chars"
+          NEXTAUTH_URL: "http://localhost:3000"
