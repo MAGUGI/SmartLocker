@@ -31,9 +31,11 @@ Fornecer uma plataforma web que permita:
 
 ### Regras complementares
 - Um armário só pode ser ocupado por um aluno por vez (exclusividade mútua).
-- O check-in vincula o aluno ao armário e registra o horário de início de uso.
-- O check-out libera o armário automaticamente para o próximo aluno.
-- Armários podem ser classificados por **tamanho** (P, M, G) e agrupados por **bloco** (ex.: Bloco A, Bloco B, Vestiário Feminino/Masculino).
+- O check-in vincula o aluno ao armário, gera credencial física temporária (PIN de 6 dígitos e QR Code) e registra o horário de início de uso.
+- O check-out libera o armário automaticamente para o próximo aluno e calcula eventual tarifa excedente após a franquia gratuita de 3 horas.
+- Armários são classificados por **tamanho** (`P`, `M`, `G`), agrupados por **bloco** e isolados por **unidade/filial** (Multi-tenancy).
+- O sistema monitora telemetria IoT (nível de bateria, temperatura e tempo de porta aberta), ciclos mecânicos de solenoide e periodicidade de higienização (a cada 30 usos ou 7 dias).
+- Veja o detalhamento completo das 22 manutenções evolutivas, corretivas, preventivas e preditivas em [`docs/mapeamento-manutencoes.md`](./docs/mapeamento-manutencoes.md).
 
 ---
 
