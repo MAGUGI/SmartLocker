@@ -2,6 +2,7 @@
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
+
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -19,11 +20,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useUsos } from "@/hooks/useUsos";
-import { formatarDataHora } from "@/utils/date";
+import {
+  formatarDataHora,
+  formatarTempoDecorrido,
+  ultrapassouLimiteAbandono,
+} from "@/utils/date";
 
 const FILTRO_TODOS = "todos";
 const FILTRO_ATIVOS = "ativos";
 const FILTRO_FINALIZADOS = "finalizados";
+const FILTRO_ABANDONADOS = "abandonados";
 const TAMANHO_PAGINA = 10;
 
 export function HistoricoTable() {
@@ -36,9 +42,16 @@ export function HistoricoTable() {
   }
 
   const ativo =
-    filtro === FILTRO_ATIVOS ? true : filtro === FILTRO_FINALIZADOS ? false : undefined;
+    filtro === FILTRO_ATIVOS
+      ? true
+      : filtro === FILTRO_FINALIZADOS
+        ? false
+        : undefined;
+  const abandonado = filtro === FILTRO_ABANDONADOS ? true : undefined;
+
   const { data: resultado, isLoading } = useUsos({
     ativo,
+    abandonado,
     pagina,
     tamanhoPagina: TAMANHO_PAGINA,
   });
@@ -48,18 +61,21 @@ export function HistoricoTable() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Histórico de uso</h1>
         <p className="text-sm text-muted-foreground">
-          Check-ins e check-outs registrados por aluno e armário.
+          Check-ins, check-outs, alertas de abandono (&gt;3h) e tarifação PIX.
         </p>
       </div>
 
       <Select value={filtro} onValueChange={handleFiltroChange}>
-        <SelectTrigger className="w-full sm:w-44">
+        <SelectTrigger className="w-full sm:w-52">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value={FILTRO_TODOS}>Todos</SelectItem>
           <SelectItem value={FILTRO_ATIVOS}>Em uso</SelectItem>
           <SelectItem value={FILTRO_FINALIZADOS}>Finalizados</SelectItem>
+          <SelectItem value={FILTRO_ABANDONADOS}>
+            Retidos / Abandonados (&gt;3h)
+          </SelectItem>
         </SelectContent>
       </Select>
 
@@ -74,33 +90,66 @@ export function HistoricoTable() {
                   <TableHead>Aluno</TableHead>
                   <TableHead>Armário</TableHead>
                   <TableHead>Check-in</TableHead>
-                  <TableHead>Check-out</TableHead>
+                  <TableHead>Check-out / Status</TableHead>
+                  <TableHead>Tarifação PIX</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {resultado.dados.map((uso) => (
-                  <TableRow key={uso.id}>
-                    <TableCell>
-                      <p className="font-medium">{uso.user.nome}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {uso.user.matricula}
-                      </p>
-                    </TableCell>
-                    <TableCell>
-                      {uso.armario.numero} · {uso.armario.bloco}
-                    </TableCell>
-                    <TableCell>{formatarDataHora(uso.checkIn)}</TableCell>
-                    <TableCell>
-                      {uso.checkOut ? (
-                        formatarDataHora(uso.checkOut)
-                      ) : (
-                        <span className="font-medium text-status-ocupado">
-                          Em uso
-                        </span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {resultado.dados.map((uso) => {
+                  const emAbandono =
+                    uso.abandonado ||
+                    (!uso.checkOut && ultrapassouLimiteAbandono(uso.checkIn));
+                  return (
+                    <TableRow key={uso.id}>
+                      <TableCell>
+                        <p className="font-medium">{uso.user.nome}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {uso.user.matricula ?? "Anonimizado"}
+                        </p>
+                      </TableCell>
+                      <TableCell>
+                        {uso.armario.numero} · {uso.armario.bloco} (
+                        {uso.armario.tamanho})
+                      </TableCell>
+                      <TableCell>{formatarDataHora(uso.checkIn)}</TableCell>
+                      <TableCell>
+                        {uso.checkOut ? (
+                          <div>
+                            <p>{formatarDataHora(uso.checkOut)}</p>
+                            {uso.justificativaLiberacao && (
+                              <p className="text-[11px] text-muted-foreground">
+                                Obs: {uso.justificativaLiberacao}
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-medium text-status-ocupado">
+                              Em uso ({formatarTempoDecorrido(uso.checkIn)})
+                            </span>
+                            {emAbandono && (
+                              <span className="text-xs font-semibold text-destructive">
+                                Alerta RN1: Retido &gt; 3h
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {uso.valorCobrado && uso.valorCobrado > 0 ? (
+                          <span className="font-mono font-medium">
+                            R$ {uso.valorCobrado.toFixed(2)} (
+                            {uso.statusPagamento})
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">
+                            Isento (Franquia 3h)
+                          </span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

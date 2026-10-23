@@ -14,6 +14,7 @@ import {
 import { useArmarios } from "@/hooks/useArmarios";
 import { useCheckIn } from "@/hooks/useCheckIn";
 import { useMeuUso } from "@/hooks/useMeuUso";
+import { useUnidades } from "@/hooks/useOperacoes";
 import { ApiClientError } from "@/lib/apiClient";
 import type { ArmarioFiltros, Tamanho } from "@/types/armario";
 
@@ -22,6 +23,7 @@ const TODOS = "todos";
 export function ArmariosGrid() {
   const [filtros, setFiltros] = useState<ArmarioFiltros>({});
 
+  const { data: unidades } = useUnidades();
   const { data: todosArmarios } = useArmarios();
   const { data: armarios, isLoading } = useArmarios(filtros);
   const { data: meuUso } = useMeuUso();
@@ -67,6 +69,30 @@ export function ArmariosGrid() {
       )}
 
       <div className="flex flex-wrap gap-3">
+        {unidades && unidades.length > 0 && (
+          <Select
+            value={filtros.unidadeId ?? TODOS}
+            onValueChange={(value) =>
+              setFiltros((prev) => ({
+                ...prev,
+                unidadeId: value === TODOS ? undefined : value,
+              }))
+            }
+          >
+            <SelectTrigger className="w-full sm:w-52">
+              <SelectValue placeholder="Unidade / Filial" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={TODOS}>Todas as unidades</SelectItem>
+              {unidades.map((u) => (
+                <SelectItem key={u.id} value={u.id}>
+                  {u.nome} ({u.codigo})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
         <Select
           value={filtros.bloco ?? TODOS}
           onValueChange={(value) =>

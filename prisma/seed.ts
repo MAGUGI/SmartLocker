@@ -7,6 +7,26 @@ async function main() {
   const senhaAdmin = await bcrypt.hash("admin123", 10);
   const senhaAluno = await bcrypt.hash("aluno123", 10);
 
+  const unidadeMatriz = await prisma.unidade.upsert({
+    where: { codigo: "JVL-CENTRO" },
+    update: {},
+    create: {
+      nome: "Unidade Joinville Centro",
+      codigo: "JVL-CENTRO",
+      endereco: "Av. Juscelino Kubitschek, 410 - Centro",
+    },
+  });
+
+  await prisma.unidade.upsert({
+    where: { codigo: "JVL-NORTE" },
+    update: {},
+    create: {
+      nome: "Unidade Joinville Norte",
+      codigo: "JVL-NORTE",
+      endereco: "Rua Dona Francisca, 3200 - Saguaçu",
+    },
+  });
+
   await prisma.user.upsert({
     where: { email: "admin@smartlocker.com" },
     update: {},
@@ -15,6 +35,7 @@ async function main() {
       email: "admin@smartlocker.com",
       passwordHash: senhaAdmin,
       role: "ADMIN",
+      unidadeId: unidadeMatriz.id,
     },
   });
 
@@ -32,6 +53,7 @@ async function main() {
         ...aluno,
         passwordHash: senhaAluno,
         role: "ALUNO",
+        unidadeId: unidadeMatriz.id,
       },
     });
   }
@@ -43,8 +65,6 @@ async function main() {
     { bloco: "Vestiário Feminino", tamanho: "M", quantidade: 6 },
   ];
 
-  // Números são únicos por bloco (independente do tamanho), então o contador
-  // de numeração precisa continuar entre os grupos de um mesmo bloco.
   const proximoNumeroPorBloco = new Map<string, number>();
 
   for (const grupo of blocos) {
@@ -58,6 +78,7 @@ async function main() {
           numero: i,
           bloco: grupo.bloco,
           tamanho: grupo.tamanho,
+          unidadeId: unidadeMatriz.id,
         },
       });
     }

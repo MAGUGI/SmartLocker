@@ -1,0 +1,21 @@
+{
+  "name": "SmartLocker - Gestão Inteligente de Armários",
+  "short_name": "SmartLocker",
+  "description": "Consulta offline de armário e PIN temporário em vestiários com sinal oscilante.",
+  "start_url": "/meu-armario",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "icons": [
+    {
+      "src": "/smartlocker_logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/smartlocker_logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
